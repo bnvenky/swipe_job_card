@@ -106,7 +106,8 @@ const Jobs = () => {
   const status = swipedJobs[currentJob.id]; // Check the swipe status for the current job
 
   return (
-    <div className="flex items-center justify-center h-screen relative">
+    <div className="flex flex-col items-center justify-center h-screen relative">
+      <h1 className="text-xl font-bold pb-5">Job Cards</h1>
       <div
         {...swipeHandlers} // Apply swipe handlers to the current job
         className={`border rounded-lg shadow-md cursor-pointer w-full max-w-md relative overflow-hidden transition-all duration-300 transform ${
