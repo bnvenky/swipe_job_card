@@ -11,10 +11,12 @@ const Jobs = () => {
   const [swipedJobs, setSwipedJobs] = useState({});
   const [currentJobIndex, setCurrentJobIndex] = useState(0); // To track the current job
   const [popUpMessage, setPopUpMessage] = useState(''); // State for pop-up message
+  const [isLoading, setIsLoading] = useState(true); // Loading state
 
   // Fetch the job list from API on mount
   useEffect(() => {
     const fetchJobs = async () => {
+      setIsLoading(true); // Set loading to true at the start
       try {
         const response = await axios.get('https://testapi.getlokalapp.com/common/jobs?page=3');
         if (response.data && Array.isArray(response.data.results)) {
@@ -27,6 +29,8 @@ const Jobs = () => {
         }
       } catch (error) {
         console.error('Error fetching jobs:', error);
+      } finally {
+        setIsLoading(false); // Set loading to false after fetching
       }
     };
     fetchJobs();
@@ -84,6 +88,15 @@ const Jobs = () => {
     trackMouse: true, // Allow mouse dragging to simulate swipe for desktop users
   });
 
+  // Display loading spinner if data is being fetched
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 border-solid"></div>
+      </div>
+    );
+  }
+
   // If there are no more jobs to display
   if (currentJobIndex >= jobs.length) {
     return <p className="text-center p-4">No more jobs to display</p>;
@@ -93,7 +106,7 @@ const Jobs = () => {
   const status = swipedJobs[currentJob.id]; // Check the swipe status for the current job
 
   return (
-    <div className="p-4 flex flex-col items-center relative">
+    <div className="flex items-center justify-center h-screen relative">
       <div
         {...swipeHandlers} // Apply swipe handlers to the current job
         className={`border rounded-lg shadow-md cursor-pointer w-full max-w-md relative overflow-hidden transition-all duration-300 transform ${
@@ -124,3 +137,4 @@ const Jobs = () => {
 };
 
 export default Jobs;
+
