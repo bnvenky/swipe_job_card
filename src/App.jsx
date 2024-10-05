@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Bookmarks from './components/Bookmarks';
 import Jobs from './components/Jobs';
-import JobDetails from './components/JobDetails';
 import { useState } from 'react';
 import { JobProvider } from './contexts/JobContext';
 
@@ -14,8 +13,7 @@ const App = () => {
         <div className="flex bg-gray-100 flex-col h-screen">
           <main className="flex-1 overflow-y-auto">
             <Routes>
-              <Route path="/jobs/:id" element={<JobDetails />} />
-              <Route path="/bookmarks" element={<Bookmarks />} />
+              <Route path="/bookmarks" element={<Bookmarks/>} />
               <Route path="/" element={activeSection === 'jobs' ? <Jobs /> : <Bookmarks />} />
             </Routes>
           </main>
@@ -42,3 +40,4 @@ const App = () => {
 };
 
 export default App;
+

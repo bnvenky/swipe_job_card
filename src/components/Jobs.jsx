@@ -1,102 +1,126 @@
-/* eslint-disable no-unused-vars */
-
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import { useJob } from '../contexts/JobContext';
 import { useSwipeable } from 'react-swipeable';
-// src/components/Jobs.js
+import { useJob } from '../contexts/JobContext';
+
 const Jobs = () => {
   const [jobs, setJobs] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [page, setPage] = useState(1);
-  const containerRef = useRef(null);
-  
-  const navigate = useNavigate();  // Added here
-  const { setSelectedJob, bookmarkedJobs, setBookmarkedJobs } = useJob();  // Destructuring jobs state
+  const { setBookmarkedJobs, bookmarkedJobs } = useJob();
 
+  // State to track swiped jobs
+  const [swipedJobs, setSwipedJobs] = useState({});
+  const [currentJobIndex, setCurrentJobIndex] = useState(0); // To track the current job
+  const [popUpMessage, setPopUpMessage] = useState(''); // State for pop-up message
+
+  // Fetch the job list from API on mount
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        setIsLoading(true);
-        const response = await axios.get(`https://testapi.getlokalapp.com/common/jobs?page=${page}`);
+        const response = await axios.get('https://testapi.getlokalapp.com/common/jobs?page=3');
         if (response.data && Array.isArray(response.data.results)) {
-          setJobs(prevJobs => [...prevJobs, ...response.data.results]);
-        } else {
-          setError('Unexpected data format');
+          const initialJobs = response.data.results;
+          // Load swiped jobs from localStorage if available
+          const savedSwipedJobs = JSON.parse(localStorage.getItem('swipedJobs')) || {};
+          const filteredJobs = initialJobs.filter(job => !savedSwipedJobs[job.id]); // Filter out swiped jobs
+          setJobs(filteredJobs);
+          setSwipedJobs(savedSwipedJobs); // Restore swiped jobs
         }
-      } catch (err) {
-        setError('Failed to fetch jobs');
-      } finally {
-        setIsLoading(false);
+      } catch (error) {
+        console.error('Error fetching jobs:', error);
       }
     };
     fetchJobs();
-  }, [page]);
+  }, []);
 
-  // Navigate to Job Details page when a job is clicked
-  const handleJobClick = (job) => {
-    setSelectedJob(job);
-    navigate(`/jobs/${job.id}`);
-  };
+  // Load bookmarked jobs from localStorage
+  useEffect(() => {
+    const savedBookmarks = JSON.parse(localStorage.getItem('bookmarkedJobs')) || [];
+    setBookmarkedJobs(savedBookmarks);
+  }, [setBookmarkedJobs]);
 
   const handleSwipe = (direction, job) => {
+    const updatedSwipedJobs = {
+      ...swipedJobs,
+      [job.id]: direction === 'right' ? 'bookmarked' : 'not_interested',
+    };
+
+    setSwipedJobs(updatedSwipedJobs);
+    localStorage.setItem('swipedJobs', JSON.stringify(updatedSwipedJobs)); // Save swiped jobs
+
     if (direction === 'right') {
+      // Add the job to bookmarked jobs
       const updatedBookmarks = [...bookmarkedJobs, job];
       setBookmarkedJobs(updatedBookmarks);
       localStorage.setItem('bookmarkedJobs', JSON.stringify(updatedBookmarks));
-    } else if (direction === 'left') {
-      setJobs(jobs.filter(j => j.id !== job.id));
+
+      // Set pop-up message for bookmarking
+      setPopUpMessage('Bookmarked');
+    } else {
+      // Set pop-up message for not interested
+      setPopUpMessage('Not Interested');
     }
+
+    // Move to the next job
+    setCurrentJobIndex((prevIndex) => prevIndex + 1);
+
+    // Hide the pop-up message after a delay
+    setTimeout(() => {
+      setPopUpMessage('');
+    }, 2000); // Adjust the duration as needed
   };
 
-  const handlers = useSwipeable({
-    onSwipedLeft: (eventData) => handleSwipe('left', eventData.job),
-    onSwipedRight: (eventData) => handleSwipe('right', eventData.job),
+  // Swipe handlers for both left and right swipes
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => {
+      const currentJob = jobs[currentJobIndex]; // Get the current job
+      if (currentJob) handleSwipe('left', currentJob); // Call swipe handler for left swipe
+    },
+    onSwipedRight: () => {
+      const currentJob = jobs[currentJobIndex]; // Get the current job
+      if (currentJob) handleSwipe('right', currentJob); // Call swipe handler for right swipe
+    },
+    delta: 10,
+    preventDefaultTouchmoveEvent: true,
+    trackMouse: true, // Allow mouse dragging to simulate swipe for desktop users
   });
 
-  const handleScroll = useCallback(() => {
-    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-    if (scrollHeight - scrollTop <= clientHeight + 50) {
-      setPage(prevPage => prevPage + 1);
-    }
-  }, []);
+  // If there are no more jobs to display
+  if (currentJobIndex >= jobs.length) {
+    return <p className="text-center p-4">No more jobs to display</p>;
+  }
 
-  useEffect(() => {
-    const container = containerRef.current;
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [handleScroll]);
+  const currentJob = jobs[currentJobIndex]; // Get the current job to display
+  const status = swipedJobs[currentJob.id]; // Check the swipe status for the current job
 
   return (
-    <div className="p-4 overflow-y-auto h-screen" ref={containerRef}>
-      {isLoading && <div className="loading-spinner">Loading...</div>}
-      {error && <p className="text-red-500">{error}</p>}
-      {jobs.length === 0 && !isLoading && !error && <p>No jobs available</p>}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {jobs.map((job) => (
-          <div
-            key={job.id}
-            className="border bg-white rounded-lg p-2 shadow-md cursor-pointer flex flex-col"
-            onClick={() => handleJobClick(job)}  // Call handleJobClick on click
-            {...handlers}
-          >
-            {job.creatives[0]?.thumb_url && (
-              <div className="w-full h-32 mb-4 overflow-hidden rounded-lg">
-                <img src={job.creatives[0].thumb_url} alt="Job thumbnail" className="object-cover w-full" height={100} />
-              </div>
-            )}
-            <h2 className="text-m font-bold mb-2">{job.title}</h2>
-            <h2 className="text-sm font-bold mb-2">Company: {job.company_name}</h2>
-            <p>Location: {job.primary_details?.Place}</p>
-          </div>
-        ))}
+    <div className="p-4 flex flex-col items-center relative">
+      <div
+        {...swipeHandlers} // Apply swipe handlers to the current job
+        className={`border rounded-lg shadow-md cursor-pointer w-full max-w-md relative overflow-hidden transition-all duration-300 transform ${
+          status ? 'opacity-50 pointer-events-none' : ''
+        }`}
+      >
+        <img
+          src={currentJob.creatives && currentJob.creatives[0]?.thumb_url}
+          alt="Job"
+          className="w-full h-40 object-cover rounded-t-lg"
+        />
+        <div className="p-4">
+          <h2 className="text-xl font-bold">{currentJob.title}</h2>
+          <h3 className="text-md font-semibold text-gray-700">Company: {currentJob.company_name}</h3>
+          <p className="text-gray-600">Location: {currentJob.primary_details?.Place}</p>
+          <p className="mt-2 text-gray-500">Swipe right to bookmark, swipe left to discard.</p>
+        </div>
       </div>
+
+      {/* Pop-Up Message */}
+      {popUpMessage && (
+        <div className="absolute top-4 right-4 bg-black text-white p-2 rounded shadow-lg transition-opacity duration-300">
+          {popUpMessage}
+        </div>
+      )}
     </div>
   );
 };
-
 
 export default Jobs;
