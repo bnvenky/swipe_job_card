@@ -3,7 +3,7 @@ import Bookmarks from './components/Bookmarks';
 import Jobs from './components/Jobs';
 import { useState } from 'react';
 import { JobProvider } from './contexts/JobContext';
-import { SignedIn, SignedOut, SignInButton, UserButton, SignOutButton } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, SignInButton, UserButton} from '@clerk/clerk-react';
 
 const App = () => {
   const [activeSection, setActiveSection] = useState('jobs');
@@ -23,13 +23,12 @@ const App = () => {
         <header className="bg-gray-800 text-white p-4 flex justify-between items-center shadow-md">
           {/* Left side: Logo */}
           <div className="text-xl font-bold">
-            <a href="/">MyJobApp</a> {/* You can replace this with an <img> tag for a logo */}
+            <a href="/">MyJobApp</a>
           </div>
 
           {/* Right side: Profile icon and Logout button */}
           <div className="flex items-center space-x-4">
-            <UserButton />
-            <SignOutButton redirectUrl="/" /> {/* Immediately redirect to login page after logout */}
+            <UserButton />{/* Immediately redirect to login page after logout */}
           </div>
         </header>
 
@@ -38,19 +37,10 @@ const App = () => {
             <div className="flex bg-gray-100 flex-col h-screen">
               <main className="flex-1 overflow-y-auto">
                 <Routes>
-                  <Route 
-                    path="/" 
-                    element={activeSection === 'jobs' ? <Jobs /> : <Bookmarks />} 
-                  />
-                  <Route 
-                    path="/bookmarks" 
-                    element={<Bookmarks />} 
-                  />
+                  <Route  path="/" element={activeSection === 'jobs' ? <Jobs /> : <Bookmarks />} />
+                  <Route path="/bookmarks" element={<Bookmarks />} />
                   {/* Redirect to "/" if a route does not match */}
-                  <Route 
-                    path="*" 
-                    element={<Navigate to="/" />} 
-                  />
+                  <Route path="*" element={<Navigate to="/" />} />
                 </Routes>
               </main>
               <nav className="bg-gray-900 fixed-bottom text-white py-4 shadow-md">

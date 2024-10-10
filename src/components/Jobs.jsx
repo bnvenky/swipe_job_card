@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useSwipeable } from 'react-swipeable';
 import { useJob } from '../contexts/JobContext';
 
+
 const Jobs = () => {
   const [jobs, setJobs] = useState([]);
   const { setBookmarkedJobs, bookmarkedJobs } = useJob();
